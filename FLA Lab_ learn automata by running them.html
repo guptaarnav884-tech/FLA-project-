@@ -1,0 +1,225 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>FLA Lab: learn automata by running them</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff0e3;--card:#fffaf5;--ink:#1b3a2a;--mute:#5b7566;--line:#efd3bd;--t0:#2e8b57;--t1:#cf6f3f;--tS:#6f8f2f;--ta:#2e8b57;--tb:#d9654a;--td:#80948a;--ok:#1f7a45;--bad:#c4402f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#13231a;--card:#1b3225;--ink:#fbe9dc;--mute:#a8c1b1;--line:#2f4b3a;--ok:#62d68f;--bad:#ff8d7b}}
+:root[data-theme="dark"]{--bg:#13231a;--card:#1b3225;--ink:#fbe9dc;--mute:#a8c1b1;--line:#2f4b3a;--ok:#62d68f;--bad:#ff8d7b}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'Bricolage Grotesque',system-ui,sans-serif}
+.wrap{max-width:980px;margin:0 auto;padding:22px 16px 48px}
+h1{font-size:clamp(34px,7vw,60px);line-height:1;margin:0 0 8px;letter-spacing:-.02em}
+.sub{color:var(--mute);margin:0 0 20px;max-width:56ch}
+.mono,td,.cell,.tile,input{font-family:'IBM Plex Mono',ui-monospace,monospace}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 14px}
+button:hover:not(:disabled){border-color:var(--ta)}button:disabled{opacity:.4;cursor:default}
+button:focus-visible,input:focus-visible{outline:3px solid var(--ta);outline-offset:2px}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input[type=text]{flex:1;min-width:150px;font-size:16px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.chip{padding:4px 10px;font-size:13px;border-radius:99px}.chip.g{border-color:var(--ok)}.chip.r{border-color:var(--bad)}
+.tape{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 0}
+.cell{width:34px;height:38px;display:grid;place-items:center;border:1px solid var(--line);border-radius:6px;font-size:17px}
+.cell.done{opacity:.35}.cell.head{border:2px solid var(--ta);background:color-mix(in srgb,var(--ta) 14%,transparent)}
+.empty{color:var(--mute);font-size:14px}
+.stage{display:grid;grid-template-columns:150px 1fr;gap:16px}
+@media(max-width:640px){.stage{grid-template-columns:1fr}}
+.tower{display:flex;flex-direction:column;justify-content:flex-end;min-height:230px;border:2px solid var(--mute);border-top:none;border-radius:0 0 10px 10px;padding:6px 8px}
+.tile{height:34px;margin-top:4px;border-radius:6px;display:grid;place-items:center;color:#fff;font-weight:500;font-size:17px}
+.tile.top{outline:3px solid var(--ink);outline-offset:1px}
+.tile.new{animation:drop .3s ease-out}@keyframes drop{from{transform:translateY(-16px);opacity:0}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.cap{font-size:13px;color:var(--mute);margin:0 0 4px}
+svg{width:100%;height:auto;display:block}
+.node circle{fill:var(--card);stroke:var(--mute);stroke-width:1.5}.node.on circle{fill:var(--ta);stroke:var(--ta)}.node.ok circle{fill:var(--ok);stroke:var(--ok)}.node.bad circle{fill:var(--bad);stroke:var(--bad)}
+.node text{fill:var(--ink);font:500 14px 'IBM Plex Mono',monospace;text-anchor:middle;dominant-baseline:central}.node.on text,.node.ok text,.node.bad text{fill:#fff}
+.ring{fill:none!important;stroke:var(--mute);stroke-width:1.5}.edge{stroke:var(--mute);fill:none;stroke-width:1.5}
+.lbl{fill:var(--mute);font:12px 'IBM Plex Mono',monospace;text-anchor:middle}
+.note{margin-top:8px;padding:10px 12px;border-left:4px solid var(--tS);background:color-mix(in srgb,var(--tS) 10%,transparent);border-radius:0 8px 8px 0;font-size:15px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}.ctl input[type=range]{flex:1;min-width:120px}
+.status{margin-top:10px;min-height:48px}.status b.accept{color:var(--ok)}.status b.reject{color:var(--bad)}
+.tw{max-height:250px;overflow:auto;position:relative}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;white-space:nowrap}th{position:sticky;top:0;background:var(--card)}
+tr.cur td{background:color-mix(in srgb,var(--ta) 16%,transparent)}
+h2{font-size:20px;margin:0 0 8px}p{margin:0 0 8px}.foot{color:var(--mute);font-size:14px}
+body.pre .sim{display:none}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}.nav a{color:var(--ink);border:1px solid var(--line);background:var(--card);border-radius:99px;padding:4px 12px;font-size:14px;text-decoration:none}.nav a:hover{border-color:var(--ta)}
+h2.band{font-size:26px;margin:30px 0 10px;letter-spacing:-.01em}
+select{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);max-width:100%}select:focus-visible{outline:3px solid var(--ta);outline-offset:2px}
+.hz{border:2px solid var(--line);border-radius:12px;padding:10px 12px;margin-top:8px;background:color-mix(in srgb,var(--ta) 8%,transparent);font-size:14px}
+details{border-bottom:1px solid var(--line);padding:8px 0}summary{cursor:pointer;font-weight:500}details p{margin:6px 0 0;color:var(--mute);font-size:15px}ol.lad{margin:0;padding-left:20px}ol.lad li{margin-bottom:6px}
+.chat{height:270px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)}
+.msg{max-width:90%;padding:8px 12px;border-radius:12px;margin:0 0 8px;white-space:pre-wrap;font-size:15px}.msg.bot{background:var(--card);border:1px solid var(--line)}.msg.me{background:var(--ta);color:#fff;margin-left:auto}
+</style></head><body><div class="wrap">
+<h1>FLA Lab</h1>
+<p class="sub">Learn Formal Languages and Automata by running the machines yourself: DFA, NFA, regular expressions, PDA and Turing machines.</p>
+<nav class="nav"><a href="#fa">DFA and NFA</a><a href="#rxs">Regex</a><a href="#pda">PDA</a><a href="#tm">Turing machine</a><a href="#hier">Hierarchy</a><a href="#gloss">Glossary</a><a href="#start">Start here</a><a href="#tutor">Tutor</a></nav>
+<h2 class="band" id="fa">Finite automata: DFA and NFA</h2>
+<div class="card"><p>A finite automaton reads a string one symbol at a time and decides yes or no using only its current state. A DFA has exactly one move for every symbol. An NFA may have several moves, or none, and accepts if any path works.</p><div class="row"><select id="fsel" aria-label="Choose a machine"></select><input type="text" id="fin" maxlength="16" aria-label="String to test" autocomplete="off" spellcheck="false"><button id="fgo">Run</button></div><div class="row" id="fchips" style="margin-top:8px"></div><p class="cap" style="margin-top:12px">Input tape</p><div class="tape" id="fatape"></div><svg viewBox="0 0 420 210" role="img" aria-label="Finite automaton diagram" id="fadia" style="margin-top:8px"></svg><div class="note" id="fanote"></div><div class="ctl"><button id="fbk">Back</button><button id="fst">Step</button><button id="frs">Reset</button></div><div class="status" id="fastat" aria-live="polite"></div></div>
+<div class="card"><h2>NFA → DFA: subset construction</h2><p id="subn"></p><div class="tw"><table><thead id="subh"></thead><tbody id="subb"></tbody></table></div></div>
+<h2 class="band" id="rxs">Regular expressions</h2>
+<div class="card"><p>A regular expression describes a language with | (or), * (repeat), ? (optional) and brackets. Every regex has an equivalent NFA, and every NFA has an equivalent DFA.</p><div class="row"><input type="text" id="rxi" maxlength="40" aria-label="Regular expression" autocomplete="off" spellcheck="false"><select id="ral" aria-label="Alphabet"><option value="01">alphabet {0,1}</option><option value="ab">alphabet {a,b}</option></select></div><div class="row" style="margin-top:8px"><input type="text" id="rxt" maxlength="14" placeholder="string to test" aria-label="String to test against the regex" autocomplete="off" spellcheck="false"></div><div class="status" id="rxv"></div><p class="cap">All accepted strings up to length 4:</p><p class="mono" id="rxl"></p></div>
+<h2 class="band" id="pda">Pushdown automata (PDA)</h2>
+<div class="card" id="qcard"><h2>Your task</h2><p><b>Question 1.</b> Construct a PDA for L = { w c wᴿ | w ∈ {0,1}* } and trace 01c10.</p><div class="row" style="margin-bottom:12px"><button id="sq1">Simulate question 1</button></div><p><b>Question 2.</b> Convert the CFG S → aSb | ε into an equivalent PDA and trace aaabbb.</p><div class="row"><button id="sq2">Simulate question 2</button></div><p class="cap" style="margin-top:10px">Press a button, guess the verdict, then step through the machine yourself. The answer appears only as you step.</p></div>
+<div class="tabs sim" role="tablist"><button role="tab" id="tab1" aria-selected="true">PDA for wcwᴿ</button><button role="tab" id="tab2" aria-selected="false">PDA for S → aSb | ε</button></div>
+<div class="card sim"><h2 id="mt"></h2><p id="md"></p>
+<div class="row"><input type="text" id="inp" maxlength="24" aria-label="String to test" autocomplete="off" spellcheck="false"><button id="go">Load string</button></div>
+<div class="row" id="chips" style="margin-top:8px"></div></div>
+<div class="card sim"><p class="cap">Input tape (the blue box is the reading head)</p><div class="tape" id="tape"></div>
+<div class="row" style="margin-top:12px"><span class="cap" style="margin:0">Your prediction:</span><button id="gA" class="chip g">Accepted</button><button id="gR" class="chip r">Rejected</button><span id="gm" class="cap" style="margin:0"></span></div></div>
+<div class="card sim"><div class="stage"><div><p class="cap">Stack: top at the top</p><div class="tower" id="stack"></div></div>
+<div><svg viewBox="0 0 420 200" role="img" aria-label="State diagram" id="dia"></svg><div class="note" id="note"></div></div></div>
+<div class="ctl"><button id="bk">Back</button><button id="st">Step</button><button id="pl">Play</button><button id="rs">Reset</button><input type="range" id="sc" min="0" max="0" value="0" aria-label="Move through the trace"></div>
+<div class="status" id="status" aria-live="polite"></div></div>
+<div class="card sim"><h2>Trace so far</h2><div class="tw" id="tw"><table><thead><tr><th>Step</th><th>State</th><th>Read</th><th>Stack (top → bottom)</th><th>Move</th></tr></thead><tbody id="tb"></tbody></table></div></div>
+<h2 class="band" id="tm">Turing machine</h2>
+<div class="card"><p>A Turing machine has an endless tape and a head that reads, writes and moves left or right. This one adds 1 to a binary number. Enter bits, then step through.</p><div class="row"><input type="text" id="tmi" maxlength="12" aria-label="Binary number" autocomplete="off" spellcheck="false"><button id="tmg">Load</button></div><p class="cap" style="margin-top:12px" id="tmq"></p><div class="tape" id="tmtape"></div><div class="ctl"><button id="tbk">Back</button><button id="tst">Step</button><button id="trs">Reset</button></div><div class="status" id="tmst" aria-live="polite"></div><p class="cap">Rules. q0: 0→0,R and 1→1,R and blank→blank,L (go to q1). q1: 1→0,L and 0→1,L (halt) and blank→1,L (halt).</p></div>
+<h2 class="band" id="hier">The Chomsky hierarchy</h2>
+<div class="card"><p>Each ring can do everything inside it, plus more.</p><div class="hz"><b>Type 0: Turing machine</b>, any computable language, such as the halting problem’s yes-instances<div class="hz"><b>Type 1: linear bounded automaton</b>, such as aⁿbⁿcⁿ<div class="hz"><b>Type 2: PDA and context-free grammar</b>, such as aⁿbⁿ and w c wᴿ<div class="hz"><b>Type 3: DFA, NFA and regular expression</b>, such as a*b* and strings that end in 01</div></div></div></div></div>
+<h2 class="band" id="gloss">Glossary</h2>
+<div class="card"><details><summary>Alphabet, string, language</summary><p>An alphabet is a finite set of symbols. A string is symbols in a row. A language is a set of strings.</p></details><details><summary>DFA</summary><p>Deterministic finite automaton: exactly one move for every state and symbol.</p></details><details><summary>NFA and ε-moves</summary><p>Nondeterministic finite automaton: several or no moves per symbol. An ε-move changes state without reading input. Accepts if any path accepts.</p></details><details><summary>Subset construction</summary><p>Turns any NFA into a DFA whose states are sets of NFA states. The DFA can be exponentially larger.</p></details><details><summary>Regular expression and Kleene’s theorem</summary><p>Regexes, DFAs and NFAs all describe exactly the regular languages.</p></details><details><summary>Context-free grammar</summary><p>Rewrite rules like S → aSb | ε. A derivation applies rules from S until only terminals remain. A grammar is ambiguous if one string has two parse trees.</p></details><details><summary>PDA</summary><p>A finite automaton plus a stack. It recognises exactly the context-free languages.</p></details><details><summary>Turing machine</summary><p>A finite control with an endless tape. It models everything a computer can compute.</p></details><details><summary>Pumping lemma</summary><p>Every long enough string in a regular language has a part that can be repeated and stay in the language. Used to prove a language such as aⁿbⁿ is not regular.</p></details><details><summary>Closure properties</summary><p>Regular languages are closed under union, concatenation, star, complement and intersection. Context-free languages are not closed under intersection or complement.</p></details><details><summary>Decidable and undecidable</summary><p>A problem is decidable if some Turing machine always halts with the right answer. The halting problem is undecidable.</p></details><details><summary>Minimization</summary><p>Every regular language has a unique smallest DFA, found by merging states that behave the same.</p></details></div>
+<div class="card" id="start"><h2>New to FLA? Start here</h2><ol class="lad"><li><b>Alphabet and strings.</b> An alphabet is a set of symbols, like {0, 1}. A string is symbols in a row, like 0110.</li><li><b>Language.</b> A language is a set of strings that follow a rule, like “a’s then the same number of b’s”.</li><li><b>Automata.</b> Machines that decide whether a string is in a language. A finite automaton has no memory, a pushdown automaton (PDA) adds a stack, and a Turing machine can compute anything computable.</li><li><b>Why it matters.</b> Compilers, search, form checks and protocol checkers all rely on these ideas.</li></ol></div>
+<div class="card" id="tutor"><h2>Ask Stacky, your FLA tutor</h2><div class="chat" id="chat" aria-live="polite"></div><div class="row" id="qs" style="margin-top:8px"></div><div class="row" style="margin-top:8px"><input type="text" id="q" maxlength="200" placeholder="Ask anything about FLA or this page" aria-label="Question for Stacky"><button id="ask">Ask</button><button id="exs">Explain this step</button></div><label class="cap" style="display:block;margin-top:8px"><input type="checkbox" id="beg" checked> Beginner mode: everyday words and analogies</label><p class="cap">Stacky answers with Claude when you allow it. Otherwise it uses built-in notes.</p></div>
+<p class="foot">Why a stack? A finite automaton has no memory for w or for how many a’s came before. The stack remembers both. Built for PBL 1: PDA design and trace.</p>
+</div><script>
+const $=id=>document.getElementById(id),COL={'0':'--t0','1':'--t1',S:'--tS',a:'--ta',b:'--tb',$:'--td'};
+function mk(st,q,pos,stack,read,act,x){st.push(Object.assign({q,pos,stack:[...stack],read,act},x||{}))}
+function sim1(s){const st=[];let q='q0',pos=0,stack=['$'];mk(st,q,0,stack,'–','start');
+const rej=w=>{mk(st,q,pos,stack,'–','rejected',{v:'reject',why:w});return st};
+for(;;){const top=stack[0],ch=s[pos];
+if(q==='q0'){if(ch===undefined)return rej('The input ended before the middle marker c.');
+if(ch==='0'||ch==='1'){stack.unshift(ch);pos++;mk(st,q,pos,stack,ch,'push '+ch)}
+else if(ch==='c'){q='q1';pos++;mk(st,q,pos,stack,'c','read c: stop pushing, start matching')}
+else return rej('“'+ch+'” is not in the alphabet {0, 1, c}.')}
+else{if(ch===undefined){if(top==='$'){q='q2';mk(st,q,pos,stack,'ε','only $ is left: accept',{v:'accept'});return st}
+return rej('The input ended but the stack still holds “'+stack.slice(0,-1).join('')+'”: the first half was longer.')}
+if(ch==='0'||ch==='1'){if(top===ch){stack.shift();pos++;mk(st,q,pos,stack,ch,'match '+ch+', pop')}
+else return rej(top==='$'?'The second half is longer than the first: nothing is left to match “'+ch+'”.':'Mismatch: the stack expects “'+top+'” but the input has “'+ch+'”.')}
+else return rej(ch==='c'?'A second c appeared. The string needs exactly one c.':'“'+ch+'” is not in the alphabet {0, 1, c}.')}}}
+function sim2(s){const st=[];let q='q0',pos=0,stack=['$'];const dv=()=>s.slice(0,pos)+stack.filter(x=>x!=='$').join('')||'ε';
+mk(st,q,0,stack,'–','start',{dv:'–'});stack=['S','$'];q='q1';mk(st,q,0,stack,'ε','push S',{dv:'S'});
+const rej=w=>{mk(st,q,pos,stack,'–','rejected',{v:'reject',why:w,dv:dv()});return st};
+for(;;){const top=stack[0],ch=s[pos];
+if(top==='S'){if(ch==='a'){stack.splice(0,1,'a','S','b');mk(st,q,pos,stack,'ε','S → aSb (next input is a)',{dv:dv()})}
+else{stack.shift();mk(st,q,pos,stack,'ε','S → ε (next input is '+(ch===undefined?'the end':ch)+')',{dv:dv()})}}
+else if(top==='$'){if(ch===undefined){q='q2';mk(st,q,pos,stack,'ε','only $ is left: accept',{v:'accept',dv:dv()});return st}
+return rej('Input is left over (“'+s.slice(pos)+'”) but the stack is empty: there are too many b’s or an unexpected symbol.')}
+else{if(ch===top){stack.shift();pos++;mk(st,q,pos,stack,ch,'match '+ch+', pop',{dv:dv()})}
+else return rej(ch===undefined?'The input ended but the stack still expects “'+top+'”: there are fewer b’s than a’s.':'The stack expects “'+top+'” but the input has “'+ch+'”.')}}}
+const N=(id,x,t,acc)=>`<g class="node" id="n-${id}"><circle cx="${x}" cy="110" r="24"/>${acc?`<circle class="ring" cx="${x}" cy="110" r="29"/>`:''}<text x="${x}" y="110">${id}</text></g>`;
+const arr='<defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>';
+const E=(d)=>`<path class="edge" d="${d}" marker-end="url(#ar)"/>`,L=(x,y,t)=>`<text class="lbl" x="${x}" y="${y}">${t}</text>`;
+const DIA={1:arr+E('M8 110H44')+E('M94 110H184')+E('M234 110H318')+E('M58 86C38 38,102 38,82 86')+E('M198 86C178 38,242 38,222 86')+N('q0',70)+N('q1',210)+N('q2',350,0,1)+L(70,30,'0,1: push')+L(210,30,'0,1: pop if match')+L(139,98,'c')+L(276,98,'ε, $ → $')+L(70,160,'remember w')+L(210,160,'match wᴿ')+L(350,160,'accept'),
+2:arr+E('M8 110H34')+E('M84 110H184')+E('M234 110H328')+E('M198 86C178 38,242 38,222 86')+E('M198 134C178 182,242 182,222 134')+N('q0',60)+N('q1',210)+N('q2',360,0,1)+L(134,98,'push S')+L(281,98,'ε, $ → $')+L(210,30,'S → aSb  or  S → ε')+L(210,196,'a,a → ε   b,b → ε')};
+const MS={1:{t:'L = { w c wᴿ | w ∈ {0,1}* }',d:'Any 0/1 string, then c, then the same string backwards, like 01c10. The PDA pushes w, crosses c, and pops to match the reverse.',def:'01c10',ex:[['01c10',1],['c',1],['1c1',1],['0110',0],['01c11',0],['01c1',0]]},
+2:{t:'S → aSb | ε',d:'This grammar makes aⁿbⁿ. The PDA keeps the unfinished part of the derivation on its stack, expands S when it is on top, and matches a and b with the input.',def:'aaabbb',ex:[['aaabbb',1],['ab',1],['',1],['aabbb',0],['aaabb',0],['ba',0]]}};
+let M=1,steps=[],i=0,cur='',timer=null,guess=null;
+function setM(m){M=m;stop();$('tab1').setAttribute('aria-selected',m===1);$('tab2').setAttribute('aria-selected',m===2);
+const c=MS[m];$('mt').textContent=c.t;$('md').textContent=c.d;$('dia').innerHTML=DIA[m];
+$('chips').innerHTML=c.ex.map(e=>`<button class="chip" data-s="${e[0]}">${e[0]||'ε (empty)'}</button>`).join('');
+$('inp').value=c.def;load(c.def)}
+function load(s){stop();cur=s;steps=(M===1?sim1:sim2)(s);i=0;guess=null;$('gm').textContent='';$('sc').max=steps.length-1;render();
+if(!document.body.classList.contains("pre"))try{history.replaceState(null,'','#m='+M+'&s='+encodeURIComponent(s))}catch(e){}}
+function render(){const c=steps[i],last=i===steps.length-1;
+$('tape').innerHTML=cur?[...cur].map((ch,k)=>`<span class="cell${k<c.pos?' done':''}${k===c.pos?' head':''}">${ch}</span>`).join('')+`<span class="cell${c.pos===cur.length?' head':''}">⊣</span>`:'<span class="cell head">⊣</span><span class="empty">empty string (ε)</span>';
+$('stack').innerHTML=c.stack.map((x,k)=>`<div class="tile${k===0?' top':''}${k===0&&i>0&&/push|→/.test(c.act)?' new':''}" style="background:var(${COL[x]})">${x}</div>`).join('');
+['q0','q1','q2'].forEach(q=>{const n=$('n-'+q);if(n)n.setAttribute('class','node'+(q===c.q?(c.v==='reject'?' bad':c.v==='accept'?' ok':' on'):''))});
+let note;if(M===1){const w=c.stack.slice(0,-1);note=c.q==='q0'?'Remembered so far (w): <b class="mono">'+(w.slice().reverse().join('')||'ε')+'</b>':'Still to match (wᴿ): <b class="mono">'+(w.join('')||'ε')+'</b>'}
+else note='Derivation so far: <b class="mono">'+c.dv+'</b><br>The stack is the unfinished part of this derivation.';
+$('note').innerHTML=note;
+let g='';if(last&&guess!==null)g=' <span class="mono">'+((guess===(c.v==='accept'))?'You predicted correctly.':'Your prediction was wrong.')+'</span>';
+$('status').innerHTML=last&&c.v?`<b class="${c.v}">${c.v==='accept'?'Accepted.':'Rejected.'}</b> ${c.v==='accept'?'The input is fully read and only $ is left on the stack.':c.why}${g}`:(i===0?'Ready. Press Step to make the first move.':`Step ${i} of ${steps.length-1}: ${c.act}`);
+$('tb').innerHTML=steps.slice(0,i+1).map((r,k)=>`<tr class="${k===i?'cur':''}"><td>${k}</td><td>${r.q}</td><td>${r.read}</td><td>${r.stack.join('')}</td><td>${r.act}</td></tr>`).join('');
+const w=$('tw'),r=w.querySelector('.cur');w.scrollTop=r.offsetTop-w.clientHeight+r.offsetHeight+8;
+$('sc').value=i;$('bk').disabled=i===0;$('st').disabled=last}
+function stop(){clearInterval(timer);timer=null;$('pl').textContent='Play'}
+$('st').onclick=()=>{if(i<steps.length-1){i++;render()}};$('bk').onclick=()=>{stop();if(i>0){i--;render()}};
+$('rs').onclick=()=>{stop();i=0;render()};$('sc').oninput=e=>{stop();i=+e.target.value;render()};
+$('pl').onclick=()=>{if(timer){stop();return}if(i>=steps.length-1)i=0;$('pl').textContent='Pause';render();
+timer=setInterval(()=>{if(i<steps.length-1){i++;render()}else stop()},700)};
+$('go').onclick=()=>load($('inp').value.trim());$('inp').onkeydown=e=>{if(e.key==='Enter')load($('inp').value.trim())};
+$('chips').onclick=e=>{const b=e.target.closest('button');if(b){$('inp').value=b.dataset.s;load(b.dataset.s)}};
+$('gA').onclick=()=>{guess=true;$('gm').textContent='Guess saved: accepted. Step to the end to check.'};
+$('gR').onclick=()=>{guess=false;$('gm').textContent='Guess saved: rejected. Step to the end to check.'};
+$('tab1').onclick=()=>setM(1);$('tab2').onclick=()=>setM(2);
+let h={};try{location.hash.slice(1).split('&').forEach(p=>{const[k,v]=p.split('=');h[k]=decodeURIComponent(v||'')})}catch(e){}
+document.body.classList.add("pre");setM(h.m==='2'?2:1);if(h.s!==undefined&&/^[a-z01]*$/.test(h.s)&&h.s.length<=24){document.body.classList.remove("pre");$('inp').value=h.s;load(h.s)}
+const KB={what:"FLA means Formal Languages and Automata. It studies how to describe sets of strings (languages) with exact rules, and how simple machines (automata) can check them. It is the maths behind how computers read and validate text.",uses:"Compilers read your code with finite automata (the lexer) and pushdown automata (the parser). Regular expressions power search and form checks. State machines run game AI, vending machines and network protocols, and the same ideas find patterns in DNA.",pda:"A pushdown automaton is a finite automaton plus a stack. The stack gives it memory, so it can match a’s with b’s, or a string with its reverse, which a plain finite automaton cannot do.",stack:"Some languages need remembering or counting. For w c wᴿ you must remember all of w and check it backwards. A stack gives items back in reverse order, so it fits exactly.",lang:"An alphabet is a set of symbols like {0, 1}. A string is symbols in a row. A language is a set of strings that obey a rule, such as all strings with equal a’s then b’s.",fa:"A finite automaton has a fixed number of states and no other memory. It handles patterns like “ends in 01”, but it cannot count without limit, so it cannot check aⁿbⁿ.",cfg:"A context-free grammar is a set of rewrite rules, like S → aSb | ε. Every such grammar has an equivalent PDA, and that is what the second tab shows."};
+Object.assign(KB,{nfa:"A DFA has exactly one move per symbol. An NFA can have many or none and accepts if any path accepts. They recognise the same languages, because subset construction turns an NFA into a DFA, though the DFA may be much bigger.",regex:"A regular expression is a compact formula for a language, using | for or and * for repeat. Every regex has an equivalent NFA, and so an equivalent DFA.",tm:"A Turing machine has a finite control and an endless tape it can read, write and move along. It can compute anything a computer can, which makes it the model for what is computable.",chomsky:"The Chomsky hierarchy ranks languages by power. Type 3 regular (DFA, NFA), type 2 context-free (PDA), type 1 context-sensitive, type 0 recursively enumerable (Turing machine). Each type contains the one below it.",pump:"The pumping lemma says a long string in a regular language has a middle part you can repeat and still stay in the language. If repeating breaks it, as with aⁿbⁿ, the language is not regular.",halt:"A problem is decidable if a Turing machine always halts with a yes or no. The halting problem, deciding whether a program ever stops, is undecidable."});
+const QS=[["What is FLA?","what"],["How is it used?","uses"],["DFA vs NFA?","nfa"],["What is a PDA?","pda"],["Chomsky hierarchy?","chomsky"],["Why a stack?","stack"]];
+const SYS="You are Stacky, a friendly tutor for students new to Formal Languages and Automata (FLA). Answer in under 110 words, in plain words, with one tiny example. The page teaches DFA, NFA, regular expressions, PDA (w c wR and S -> aSb | epsilon), Turing machines and the Chomsky hierarchy, so link to them when it helps. If the question is not about FLA or computing theory, kindly steer back to FLA.";
+function local(q){const l=q.toLowerCase();const r=[[/chomsky|hierarch/,"chomsky"],[/regex|regular expr/,"regex"],[/turing|tape/,"tm"],[/pump/,"pump"],[/halt|decid/,"halt"],[/fla|formal lang|automata/,"what"],[/use|used|real|applic|why learn/,"uses"],[/pda|pushdown/,"pda"],[/stack/,"stack"],[/nfa|dfa|nondeterm|determinis|subset/,"nfa"],[/finite|regular/,"fa"],[/grammar|cfg|context/,"cfg"],[/alphabet|language|string/,"lang"]];for(const [re,k] of r)if(re.test(l))return KB[k];return "I can explain what FLA is, how it is used, what a PDA is, or why a stack is needed. Try one of the buttons above."}
+const LOG=$("chat");let sam,busy=false;
+function addMsg(role,t){const d=document.createElement("div");d.className="msg "+role;d.textContent=t;LOG.appendChild(d);LOG.scrollTop=LOG.scrollHeight;return d}
+async function getSample(){if(sam===undefined){try{sam=window.claude?await claude.use("sample"):null}catch(e){sam=null}}return sam}
+async function ask(q,ctx,fb){if(busy||!q)return;busy=true;addMsg("me",q);const out=addMsg("bot","Thinking…");const s=await getSample();
+if(s){try{const p=SYS+($("beg").checked?" Use an everyday analogy and no jargon.":"")+(ctx?"\nContext: "+ctx:"")+"\nStudent question: "+q;const r=await s(p,{onText:({text})=>{out.textContent=text;LOG.scrollTop=LOG.scrollHeight},cache:false,modelTier:"quick"});if(r&&r.text)out.textContent=r.text}catch(e){out.textContent=fb||local(q)}}else out.textContent=fb||local(q);busy=false;LOG.scrollTop=LOG.scrollHeight}
+addMsg("bot","Hi, I’m Stacky. I explain FLA from scratch. Pick a question below or type your own.");
+$("qs").innerHTML=QS.map(x=>`<button class="chip" data-q="${x[0]}">${x[0]}</button>`).join("");
+$("qs").onclick=e=>{const b=e.target.closest("button");if(b)ask(b.dataset.q)};
+$("ask").onclick=()=>{const v=$("q").value.trim();$("q").value="";ask(v)};$("q").onkeydown=e=>{if(e.key==="Enter")$("ask").click()};
+$("exs").onclick=()=>{const c=steps[i],t=c.stack.join("")||"empty";ask("Explain this step to me.","Machine: "+MS[M].t+". String: "+(cur||"empty")+". Step "+i+": "+c.act+". Stack from top to bottom: "+t+".","Step "+i+": "+c.act+". The stack now reads "+t+" from top to bottom.")};
+function startQ(m,s){document.body.classList.remove("pre");setM(m);$("inp").value=s;load(s);$("tape").scrollIntoView()}
+$("sq1").onclick=()=>startQ(1,"01c10");$("sq2").onclick=()=>startQ(2,"aaabbb");
+$(".nav".slice(0,0)||"tape");document.querySelector(".nav").onclick=e=>{const a=e.target.closest("a");if(a){e.preventDefault();$(a.getAttribute("href").slice(1)).scrollIntoView()}};
+const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const FA={dfa1:{t:"DFA: strings that end in 01",ty:"DFA",st:["A","B","C"],al:"01",start:"A",acc:["C"],d:{A:{0:["B"],1:["A"]},B:{0:["B"],1:["C"]},C:{0:["B"],1:["A"]}},ex:["1101","0101","110","01"],note:"A DFA has exactly one move for every state and symbol, so it never guesses. It only needs to remember the last two symbols."},
+dfa2:{t:"DFA: even number of 1s",ty:"DFA",st:["E","O"],al:"01",start:"E",acc:["E"],d:{E:{0:["E"],1:["O"]},O:{0:["O"],1:["E"]}},ex:["1001","111","0",""],note:"Two states are enough: E means an even count of 1s so far, O means odd."},
+nfa1:{t:"NFA: strings that end in 01",ty:"NFA",st:["q0","q1","q2"],al:"01",start:"q0",acc:["q2"],d:{q0:{0:["q0","q1"],1:["q0"]},q1:{1:["q2"]},q2:{}},ex:["1101","0101","110","01"],note:"On 0, state q0 splits into two branches: stay, or guess that this 0 begins the final 01. The NFA accepts if any branch ends in q2."},
+nfa2:{t:"ε-NFA: a*b*",ty:"NFA",st:["p","r"],al:"ab",start:"p",acc:["r"],d:{p:{a:["p"],"ε":["r"]},r:{b:["r"]}},ex:["aabb","bbb","ba",""],note:"An ε-move changes state without reading anything. From p the machine may jump to r for free, so all a’s must come before all b’s."}};
+const clo=(m,S)=>{const o=new Set(S),q=[...S];while(q.length){const s=q.pop();for(const t of (m.d[s]["ε"]||[]))if(!o.has(t)){o.add(t);q.push(t)}}return o};
+const mv=(m,S,c)=>{const o=new Set();S.forEach(s=>(m.d[s][c]||[]).forEach(t=>o.add(t)));return clo(m,o)};
+function faRun(m,s){const r=[{pos:0,S:clo(m,[m.start])}];let S=r[0].S;for(let k=0;k<s.length;k++){const c=s[k];if(!m.al.includes(c)){r.push({pos:k+1,S:new Set(),bad:1,why:"“"+c+"” is not in the alphabet {"+[...m.al].join(", ")+"}."});return r}S=mv(m,S,c);r.push({pos:k+1,S})}return r}
+const ar2='<defs><marker id="ar2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>';
+function faSVG(m){const n=m.st.length,x0=n>2?70:100,sp=n>2?130:200,X=i=>x0+i*sp,ed={};
+m.st.forEach((s,i)=>{for(const c in m.d[s])m.d[s][c].forEach(t=>{const k=i+">"+m.st.indexOf(t);(ed[k]=ed[k]||[]).push(c)})});
+const si=m.st.indexOf(m.start);let h=ar2+`<path class="edge" d="M${X(si)-56} 110H${X(si)-27}" marker-end="url(#ar2)"/>`;
+for(const k in ed){const[i,j]=k.split(">").map(Number),xi=X(i),xj=X(j),lb=ed[k].join(",");let p,lx,ly;
+if(i===j){p=`M${xi-12} 90C${xi-34} 44,${xi+34} 44,${xi+12} 90`;lx=xi;ly=48}
+else if(j===i+1){p=`M${xi+24} 110H${xj-24}`;lx=(xi+xj)/2;ly=100}
+else if(j>i){const d=30+22*(j-i);p=`M${xi+8} 87C${xi+8} ${87-d},${xj-8} ${87-d},${xj-8} 87`;lx=(xi+xj)/2;ly=87-.75*d-5}
+else{const d=30+22*(i-j);p=`M${xi-8} 133C${xi-8} ${133+d},${xj+8} ${133+d},${xj+8} 133`;lx=(xi+xj)/2;ly=133+.75*d+14}
+h+=`<path class="edge" d="${p}" marker-end="url(#ar2)"/><text class="lbl" x="${lx}" y="${ly}">${lb}</text>`}
+m.st.forEach((s,i)=>{h+=`<g class="node" id="fa-${s}"><circle cx="${X(i)}" cy="110" r="24"/>${m.acc.includes(s)?`<circle class="ring" cx="${X(i)}" cy="110" r="29"/>`:""}<text x="${X(i)}" y="110">${s}</text></g>`});return h}
+let fk="dfa1",fr=[],fi=0,fs="";
+function faRender(){const m=FA[fk],c=fr[fi],last=fi===fr.length-1,acc=last&&[...c.S].some(s=>m.acc.includes(s)),set="{"+m.st.filter(s=>c.S.has(s)).join(", ")+"}";
+$("fatape").innerHTML=fs?[...fs].map((ch,k)=>`<span class="cell${k<c.pos?" done":""}${k===c.pos?" head":""}">${esc(ch)}</span>`).join(""):'<span class="empty">empty string (ε)</span>';
+m.st.forEach(s=>{const e=$("fa-"+s);if(e)e.setAttribute("class","node"+(c.S.has(s)?(last?(m.acc.includes(s)?" ok":acc?" on":" bad"):" on"):""))});
+$("fastat").innerHTML=last?`<b class="${acc?"accept":"reject"}">${acc?"Accepted.":"Rejected."}</b> ${c.bad?esc(c.why):acc?"After the last symbol an accepting state is active: "+set+".":c.S.size?"After the last symbol no accepting state is active: "+set+".":"Every branch got stuck."}`:(fi===0?"Ready. Active at the start: "+set+". Press Step.":`Read ${esc(fs[fi-1])}. Active states now: ${set}.`);
+$("fbk").disabled=fi===0;$("fst").disabled=last}
+function faLoad(k,s){fk=k;fs=s;fr=faRun(FA[k],s);fi=0;faRender()}
+function subset(m){const nm=S=>S.size?"{"+m.st.filter(s=>S.has(s)).join(",")+"}":"∅",al=[...m.al],s0=clo(m,[m.start]),seen={[nm(s0)]:1},q=[s0],rows=[];
+while(q.length&&rows.length<16){const S=q.shift(),row={n:nm(S),a:[...S].some(s=>m.acc.includes(s)),to:{}};for(const c of al){const T=mv(m,S,c),k=nm(T);row.to[c]=k;if(!seen[k]){seen[k]=1;q.push(T)}}rows.push(row)}
+$("subn").textContent=m.ty==="DFA"?"This machine is already a DFA, so the table just repeats it: one target in every cell.":"Each row is a set of NFA states that can be active together. A row marked * contains an accepting state. The table is a DFA that never guesses.";
+$("subh").innerHTML="<tr><th>DFA state</th>"+al.map(c=>`<th>on ${c}</th>`).join("")+"</tr>";
+$("subb").innerHTML=rows.map((r,k)=>`<tr><td>${k===0?"→ ":""}${r.n}${r.a?" *":""}</td>${al.map(c=>`<td>${r.to[c]}</td>`).join("")}</tr>`).join("")}
+function faMach(k){const m=FA[k];fk=k;$("fsel").value=k;$("fadia").innerHTML=faSVG(m);$("fanote").textContent=m.note;
+$("fchips").innerHTML=m.ex.map(e=>`<button class="chip" data-s="${e}">${e||"ε (empty)"}</button>`).join("");subset(m);$("fin").value=m.ex[0];faLoad(k,m.ex[0])}
+$("fsel").innerHTML=Object.keys(FA).map(k=>`<option value="${k}">${FA[k].t}</option>`).join("");
+$("fsel").onchange=()=>faMach($("fsel").value);$("fgo").onclick=()=>faLoad(fk,$("fin").value.trim());$("fin").onkeydown=e=>{if(e.key==="Enter")$("fgo").click()};
+$("fchips").onclick=e=>{const b=e.target.closest("button");if(b){$("fin").value=b.dataset.s;faLoad(fk,b.dataset.s)}};
+$("fst").onclick=()=>{if(fi<fr.length-1){fi++;faRender()}};$("fbk").onclick=()=>{if(fi>0){fi--;faRender()}};$("frs").onclick=()=>{fi=0;faRender()};
+faMach("dfa1");
+function rxGo(){const src=$("rxi").value,al=$("ral").value,t=$("rxt").value;let re;
+if(/\(\?|\\/.test(src)){$("rxv").textContent="Use only symbols, | * + ? and brackets. Lookaheads and back-references are not regular.";$("rxl").textContent="";return}
+try{re=new RegExp("^(?:"+src+")$")}catch(e){$("rxv").textContent="This pattern is not valid yet.";$("rxl").textContent="";return}
+const ok=re.test(t);$("rxv").innerHTML=`<b class="${ok?"accept":"reject"}">${ok?"Accepted.":"Rejected."}</b> The string ${t?"“"+esc(t)+"”":"ε"} ${ok?"matches":"does not match"} the whole pattern.`;
+let lv=[""];const L=[""];for(let n=1;n<=4;n++){lv=lv.flatMap(w=>[...al].map(c=>w+c));L.push(...lv)}
+$("rxl").textContent=L.filter(w=>re.test(w)).map(w=>w||"ε").join("  ")||"none"}
+$("rxi").value="(0|1)*01";$("rxt").value="1101";["rxi","rxt"].forEach(id=>$(id).oninput=rxGo);$("ral").onchange=rxGo;rxGo();
+const TMR={q0:{0:["0","R","q0"],1:["1","R","q0"],_:["_","L","q1"]},q1:{1:["0","L","q1"],0:["1","L","qH"],_:["1","L","qH"]}};
+function tmRun(s){let t=[...s],h=0,q="q0";const o=[{t:[...t],h,q,a:"Start: the head is on the first symbol."}];
+for(let n=0;n<150&&q!=="qH";n++){const c=t[h]===undefined?"_":t[h],r=(TMR[q]||{})[c];
+if(!r){o.push({t:[...t],h,q,a:"No rule for "+(c==="_"?"blank":c)+" in "+q+": the machine is stuck and rejects.",stuck:1});break}
+t[h]=r[0];h+=r[1]==="R"?1:-1;if(h<0){t.unshift("_");h=0}if(h>=t.length)t.push("_");
+o.push({t:[...t],h,q:r[2],a:"In "+q+" read "+(c==="_"?"blank":c)+": write "+(r[0]==="_"?"blank":r[0])+", move "+r[1]+", go to "+r[2]+"."})}return o}
+let tr=[],ti=0;
+function tmRender(){const c=tr[ti],last=ti===tr.length-1,cells=["_","_",...c.t,"_","_"];
+$("tmq").textContent="State: "+c.q;$("tmtape").innerHTML=cells.map((x,k)=>`<span class="cell${k===c.h+2?" head":""}">${esc(x)}</span>`).join("");
+$("tmst").innerHTML=last&&c.q==="qH"?`<b class="accept">Halted.</b> The tape reads <b class="mono">${esc(c.t.join("").replace(/_/g,""))}</b>, the input plus 1.`:last&&c.stuck?`<b class="reject">Rejected.</b> ${esc(c.a)}`:esc(c.a);
+$("tbk").disabled=ti===0;$("tst").disabled=last}
+function tmLoad(){tr=tmRun($("tmi").value.trim());ti=0;tmRender()}
+$("tmi").value="1011";$("tmg").onclick=tmLoad;$("tmi").onkeydown=e=>{if(e.key==="Enter")tmLoad()};
+$("tst").onclick=()=>{if(ti<tr.length-1){ti++;tmRender()}};$("tbk").onclick=()=>{if(ti>0){ti--;tmRender()}};$("trs").onclick=()=>{ti=0;tmRender()};tmLoad();
+</script></body></html>
